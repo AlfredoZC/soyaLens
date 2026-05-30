@@ -1,21 +1,39 @@
+# =============================================================================
+# SoyaLens .gitignore — Configuración de seguridad para GitHub
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ARCHIVOS SENSIBLES — NUNCA SUBIR
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.secret
+*.credentials
+
 # -----------------------------------------------------------------------------
 # ARCHIVOS MARKDOWN Y AGENTES
 # -----------------------------------------------------------------------------
-# Ignorar todos los markdowns por defecto en la raíz o subcarpetas
+# Ignorar .md auxiliares por defecto
 *.md
-
-# ¡EXCEPCIONES VITALES!
-# Permitir los markdowns dentro de docs/
-!docs/**/*.md
-!docs/*.md
 
 # Permitir los documentos principales obligatorios para el Hackathon
 !README.md
 !PROJECT.md
 
-# Ignorar específicamente el directorio de reglas de agentes
+# Permitir markdowns dentro de docs/
+!docs/**/*.md
+!docs/*.md
+
+# Ignorar directorio de reglas de agentes
 .agents/
 
+# Archivos de configuración de agentes IA
+.claude.md
+.dev_notes.md
+AGENTS.md
 
 # -----------------------------------------------------------------------------
 # PYTHON / ENTORNO / CACHÉ
@@ -23,32 +41,108 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Entornos virtuales (cualquier nombre)
 .venv/
 venv/
 env/
-.env
+envBwaiBackend/
 
 # -----------------------------------------------------------------------------
 # MODELOS IA Y ARCHIVOS PESADOS
 # -----------------------------------------------------------------------------
-# Pesos de modelos (pesados — no subir al repo)
+# Pesos de modelos
 *.pt
 *.pth
 *.onnx
+*.tflite
+*.h5
+*.pb
+*.safetensors
+
 # Carpeta de pesos entrenados
 ai/weights/
+<<<<<<< HEAD
+
+# Outputs del entrenamiento (generados por Ultralytics)
+=======
 # Outputs del entrenamiento (generados por Ultralytics, deben vivir en ai/runs/)
 ai/runs/
+>>>>>>> d41d7d74309abc0eb2060dfc54ada63d2e6267a1
 runs/
-# Cachés generados por Ultralytics
+
+# Cachés de modelos
 *.cache
 
-# Ignorar fotos de prueba o datasets para no llenar el repo
+# Dataset de entrenamiento (se descarga de Roboflow, no se sube)
+ai/dataset/
+
+# -----------------------------------------------------------------------------
+# IMÁGENES Y MEDIA (evitar llenar el repo)
+# -----------------------------------------------------------------------------
 *.jpg
 *.jpeg
 *.png
+*.gif
+*.bmp
+*.tiff
 *.mp4
-# Excepción: imágenes de la interfaz (iconos, logos)
-!frontend/assets/
+*.avi
+*.mov
+
+# Excepción: imágenes del frontend (iconos, logos, assets)
+!frontend/public/**
+!frontend/assets/**
+
+# -----------------------------------------------------------------------------
+# NODE.JS / FRONTEND (para cuando se configure Next.js)
+# -----------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# -----------------------------------------------------------------------------
+# SISTEMA OPERATIVO
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# -----------------------------------------------------------------------------
+# IDE / EDITOR
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# -----------------------------------------------------------------------------
+# DOCKER
+# -----------------------------------------------------------------------------
+*.log
+docker-compose.override.yml
+
+# -----------------------------------------------------------------------------
+# TEMPORALES
+# -----------------------------------------------------------------------------
+tmp/
+temp/
+*.tmp
