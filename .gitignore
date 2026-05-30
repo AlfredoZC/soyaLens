@@ -1,0 +1,47 @@
+# -----------------------------------------------------------------------------
+# ARCHIVOS MARKDOWN Y AGENTES
+# -----------------------------------------------------------------------------
+# Ignorar todos los markdowns por defecto en la raíz o subcarpetas
+*.md
+
+# ¡EXCEPCIONES VITALES!
+# Permitir los markdowns dentro de docs/
+!docs/**/*.md
+!docs/*.md
+
+# Permitir los documentos principales obligatorios para el Hackathon
+!README.md
+!PROJECT.md
+
+# Ignorar específicamente el directorio de reglas de agentes
+.agents/
+
+
+# -----------------------------------------------------------------------------
+# PYTHON / ENTORNO / CACHÉ
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+
+# -----------------------------------------------------------------------------
+# MODELOS IA Y ARCHIVOS PESADOS
+# -----------------------------------------------------------------------------
+# No subir los pesos de entrenamiento por defecto, pesan mucho
+ai/weights/
+# (Opcional) Si decides usar git lfs para tu modelo final, puedes descomentar la siguiente línea:
+#!ai/weights/best.pt
+
+# Ignorar fotos de prueba o datasets para no llenar el repo
+*.jpg
+*.jpeg
+*.png
+*.mp4
+# Excepción: imágenes de la interfaz (iconos, logos)
+!frontend/assets/
