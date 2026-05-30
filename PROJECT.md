@@ -52,17 +52,20 @@ Este proyecto se construye en 3 partes en paralelo (IA, Backend, Frontend). El m
 
 **Definition of Done del MVP:** subir una foto real desde el frontend → recibir un certificado correcto → verlo aparecer en el dashboard. Si eso funciona de punta a punta, el MVP está listo.
 
-**Fuera de alcance (NO construir):** modo offline/edge, app móvil nativa, multi-idioma, pagos reales, autenticación compleja (un login simple basta o ninguno para la demo).
+**Frontend:** una sola **web responsiva en Next.js** orientada a **PWA**, con **dos interfaces** según el rol — `/captura` para el operario (móvil) y `/dashboard` para el supervisor (escritorio). Se abre por link/QR; "Agregar a inicio" la deja como app.
+
+**Fuera de alcance (NO construir):** modo offline/edge, **app móvil nativa** (la PWA la reemplaza), multi-idioma, pagos reales, autenticación compleja (para el MVP basta con las dos rutas, sin login real).
 
 ---
 
 ## 3. ARQUITECTURA (cómo se conecta todo)
 
 ```
-   ┌─────────────────────┐
-   │      FRONTEND        │   captura/upload, certificado, dashboard
-   │ (Streamlit o web)    │
-   └──────────┬──────────┘
+   ┌────────────────────────────────────────────┐
+   │  FRONTEND — Next.js (web responsiva + PWA)   │
+   │   · Interfaz OPERARIO   → /captura  (móvil)  │
+   │   · Interfaz SUPERVISOR → /dashboard (PC)    │
+   └─────────────────────┬────────────────────────┘
               │  HTTP (JSON) — contrato Sección 5.3
               ▼
    ┌─────────────────────┐
@@ -102,7 +105,7 @@ Este proyecto se construye en 3 partes en paralelo (IA, Backend, Frontend). El m
 | Observabilidad LLM | **Langfuse** | IA |
 | Backend/API | **FastAPI** + Uvicorn | Backend |
 | Base de datos | **Supabase** (Postgres + Storage + Realtime) | Backend |
-| Frontend | **Streamlit** (rápido) o web custom — ABIERTO | Frontend |
+| Frontend | **Next.js** (React + TypeScript) — web responsiva + **PWA** | Frontend |
 | Empaquetado | **Docker + docker-compose** | Backend |
 | CI/Calidad | GitHub Actions + pytest | Backend + IA |
 
@@ -120,8 +123,11 @@ from pydantic import BaseModel
 from typing import Literal, Optional
 from datetime import datetime
 
-# Las 4 clases de grano (NO agregar más sin acuerdo de equipo)
-GrainClass = Literal["sano", "partido", "hongo", "inmaduro"]
+# Las 4 clases de grano (NO agregar más sin acuerdo de equipo).
+# Mapeo desde el dataset de Roboflow:
+#   Intact -> sano | Broken -> partido | Immature -> inmaduro
+#   Skin Damaged + Spotted -> danado  (se muestra como "Dañado/Manchado"; aquí puede venir el hongo)
+GrainClass = Literal["sano", "partido", "inmaduro", "danado"]
 
 class Detection(BaseModel):
     class_name: GrainClass
@@ -132,12 +138,12 @@ class ClassBreakdown(BaseModel):
     total: int
     count_sano: int
     count_partido: int
-    count_hongo: int
     count_inmaduro: int
+    count_danado: int
     pct_sano: float
     pct_partido: float
-    pct_hongo: float
     pct_inmaduro: float
+    pct_danado: float
 
 class Certificate(BaseModel):
     sample_id: str
@@ -166,8 +172,8 @@ create table samples (
   total_grains  int,
   pct_sano      numeric,
   pct_partido   numeric,
-  pct_hongo     numeric,
   pct_inmaduro  numeric,
+  pct_danado    numeric,
   verdict       text,
   discount_pct  numeric,
   norm          text,
@@ -191,7 +197,7 @@ POST /api/v1/analyze
 
 GET /api/v1/samples?limit=50
   Respuesta 200: { "items": [ {id, created_at, lot_id, supplier,
-                   verdict, pct_hongo, discount_pct, evidence_url} ],
+                   verdict, pct_danado, discount_pct, evidence_url} ],
                    "total": int }
 
 GET /api/v1/samples/{id}
@@ -200,7 +206,7 @@ GET /api/v1/samples/{id}
 GET /api/v1/stats/today
   Respuesta 200: { "total_samples": int, "approved": int,
                    "with_discount": int, "rejected": int,
-                   "avg_pct_hongo": float }
+                   "avg_pct_danado": float }
 
 GET /health
   Respuesta 200: { "status": "ok" }
@@ -242,7 +248,7 @@ def generate_certificate(breakdown: ClassBreakdown,
 > El Backend solo conoce estas 3 funciones. Por dentro haz lo que quieras, pero la firma NO cambia.
 
 **Checklist:**
-- [ ] Conseguir dataset en Roboflow: 4 clases (`sano`, `partido`, `hongo`, `inmaduro`). Usa un dataset de Roboflow Universe + etiqueta 80–150 fotos de NUESTRA muestra real bajo NUESTRA cámara/luz. Augmentación fuerte.
+- [ ] Conseguir dataset en Roboflow: 4 clases (`sano`, `partido`, `inmaduro`, `danado`), mapeadas del dataset base: Intact→sano, Broken→partido, Immature→inmaduro, **Skin Damaged + Spotted→danado**. **Limpia/elimina la clase `null`.** Suma 80–150 fotos de NUESTRA muestra real bajo NUESTRA cámara y luz (fondo oscuro, igual que la demo). Augmentación fuerte. Si `inmaduro`/`danado` quedan con muy pocas instancias, colapsa a 2 clases (`sano` vs `danado`).
 - [ ] Entrenar `yolo26s` (640px). Registrar el run en Weights & Biases. Guardar el mejor modelo en `ai/weights/best.pt`.
 - [ ] **En cuanto tengas un modelo usable, CONGÉLALO.** No busques perfección; el pipeline vivo vale más que +2% de mAP.
 - [ ] Implementar `detect_grains()` usando YOLO26 + SAHI (tiling) para los granos densos.
@@ -279,32 +285,63 @@ def generate_certificate(breakdown: ClassBreakdown,
 
 ---
 
-### 6.3 ROL: FRONTEND (Streamlit o web — decisión abierta)
+### 6.3 ROL: FRONTEND (Next.js — web responsiva + PWA)
 
-**Responsabilidad:** la cara del producto. 3 pantallas: captura → certificado → dashboard.
+**Stack:** Next.js (React + TypeScript), responsivo y **mobile-first**, orientado a **PWA** (instalable con "Agregar a inicio"). **No usamos Streamlit.**
 
-**De qué dependes:** SOLO del contrato de API (5.3). **No necesitas esperar a nadie**: empieza con un `Certificate` JSON de ejemplo (mock) y arma toda la UI; al final cambias el mock por la llamada real al backend.
+**Responsabilidad:** la cara del producto. **Dos interfaces distintas** dentro de la misma app, según el rol:
+
+- **Interfaz OPERARIO → ruta `/captura` (para celular).** Minimalista a propósito: una acción, dos segundos. Capturar/subir foto → botón grande "Analizar" → mostrar el certificado con veredicto claro (verde/rojo). Es lo que usa el técnico en la zona de recepción.
+- **Interfaz SUPERVISOR → ruta `/dashboard` (para escritorio).** Rica en datos: lista de muestras, métricas del día, tendencias y detalle de cada certificado con su evidencia. Es lo que usa el jefe de planta.
+
+**Roles para el MVP:** NO construyas autenticación real. Las dos interfaces son simplemente **dos rutas** (`/captura` y `/dashboard`). Un login demo trivial con Supabase Auth es opcional, solo si quieres mostrarle el concepto de roles al jurado. (En producción: 1 tenant por silo + roles operario/supervisor/admin — eso va en el doc técnico, NO se construye.)
+
+**PWA:** agrega `public/manifest.json` + un service worker básico para que sea instalable y abra a pantalla completa como app.
+
+**De qué dependes:** SOLO del contrato de API (5.3). **No necesitas esperar a nadie**: define los tipos TypeScript espejo del schema (5.1), arma toda la UI con un `Certificate` mock, y al final cambias el mock por la llamada real. Centraliza las llamadas en `lib/api.ts`.
+
+**Tipos TypeScript (espejo del schema 5.1 — mantenlos sincronizados):**
+```ts
+type GrainClass = "sano" | "partido" | "inmaduro" | "danado";
+interface Certificate {
+  sample_id: string; timestamp: string;
+  lot_id?: string; supplier?: string;
+  breakdown: {
+    total: number;
+    count_sano: number; count_partido: number; count_inmaduro: number; count_danado: number;
+    pct_sano: number; pct_partido: number; pct_inmaduro: number; pct_danado: number;
+  };
+  verdict: "aprobado" | "con_descuento" | "rechazado";
+  discount_pct: number; norm: string; justification: string;
+  evidence_image_url: string;
+}
+```
 
 **Checklist:**
-- [ ] Pantalla de **captura**: subir foto o usar cámara → botón "Analizar" → `POST /api/v1/analyze`. Diseño minimalista a propósito (una acción, dos segundos): pensado para un operario apurado en un silo. Botón grande, veredicto claro (verde/rojo).
-- [ ] Render del **certificado** (este es el artefacto estrella, dale el mejor diseño): veredicto, % por clase, descuento, norma, justificación del agente, foto de evidencia, lote, fecha/hora.
-- [ ] **Dashboard**: lista de muestras (`GET /samples`) + métricas del día (`GET /stats/today`). Si usas Supabase Realtime, que se actualice en vivo.
-- [ ] Estados de carga y de error.
-- [ ] (Si hay tiempo) tematizar para que no se vea "por defecto".
+- [ ] App Next.js con dos rutas: `/captura` (operario, móvil) y `/dashboard` (supervisor, PC).
+- [ ] `/captura`: capturar/subir foto → `POST /api/v1/analyze` → render del **certificado** (el artefacto estrella, dale el mejor diseño: veredicto, % por clase, descuento, norma, justificación, evidencia, lote, fecha/hora). Botón grande, veredicto verde/rojo.
+- [ ] `/dashboard`: lista (`GET /samples`) + métricas (`GET /stats/today`) + detalle (`GET /samples/{id}`). Con Supabase Realtime, que se actualice en vivo.
+- [ ] `lib/api.ts` con todas las llamadas al backend (base URL configurable por variable de entorno).
+- [ ] PWA: `manifest.json` + service worker; probar "Agregar a inicio" en un celular.
+- [ ] Estados de carga y de error en ambas vistas.
+- [ ] Responsivo de verdad: `/captura` impecable en celular, `/dashboard` en pantalla grande.
 
-**Mock para empezar sin bloquearte** (pega esto como respuesta de ejemplo):
+**Mock para empezar sin bloquearte:**
 ```json
 {
   "sample_id": "demo-001", "timestamp": "2026-05-31T09:00:00",
   "lot_id": "L-204", "supplier": "Coop. San Juan",
   "breakdown": {"total": 312, "count_sano": 290, "count_partido": 10,
-    "count_hongo": 8, "count_inmaduro": 4, "pct_sano": 92.9,
-    "pct_partido": 3.2, "pct_hongo": 2.6, "pct_inmaduro": 1.3},
+    "count_inmaduro": 4, "count_danado": 8, "pct_sano": 92.9,
+    "pct_partido": 3.2, "pct_inmaduro": 1.3, "pct_danado": 2.6},
   "verdict": "con_descuento", "discount_pct": 4.5, "norm": "IBNORCA NB 339",
-  "justification": "La muestra presenta 2.6% de grano con hongo, superando el umbral de 2%. Se aplica un descuento de 4.5%.",
+  "justification": "La muestra presenta 2.6% de grano dañado/manchado, superando el umbral de 2%. Se aplica un descuento de 4.5%.",
   "evidence_image_url": "https://placehold.co/600x400"
 }
 ```
+
+**Prompt sugerido para tu agente de terminal:**
+> "Crea una app Next.js (React + TypeScript) con dos rutas: `/captura` (mobile-first: captura o sube una foto y la envía a `POST http://localhost:8000/api/v1/analyze`, luego muestra el certificado) y `/dashboard` (lista las muestras desde `GET /api/v1/samples` y métricas de `GET /api/v1/stats/today`). Usa EXACTAMENTE la interfaz TypeScript `Certificate` que te doy, sin inventar campos. Centraliza las llamadas en `lib/api.ts`. Configúrala como PWA con manifest y service worker."
 
 ---
 
@@ -349,8 +386,13 @@ soyalens/
 ├── backend/               # dueño: Backend
 │   ├── main.py
 │   └── db.py
-├── frontend/              # dueño: Frontend
-│   └── (app.py o proyecto web)
+├── frontend/              # dueño: Frontend (Next.js + TypeScript, PWA)
+│   ├── app/
+│   │   ├── captura/       # interfaz OPERARIO (móvil)
+│   │   └── dashboard/     # interfaz SUPERVISOR (escritorio)
+│   ├── components/
+│   ├── lib/api.ts         # llamadas al backend (contrato 5.3)
+│   └── public/manifest.json   # PWA
 └── docs/                  # dueño: Negocio/Docs
     ├── documento_tecnico.*
     ├── lean_canvas.*
@@ -382,7 +424,7 @@ soyalens/
 | Ahora | Todos | Leer doc, crear repo + `shared/schemas.py`, repartir `.env` |
 | Sábado tarde/noche | IA | Dataset + entrenar + stubs de las 3 funciones |
 | Sábado tarde/noche | Backend | Endpoints con stubs + Supabase |
-| Sábado tarde/noche | Frontend | UI con mock JSON |
+| Sábado tarde/noche | Frontend | Next.js: rutas /captura y /dashboard con mock JSON + tipos TS |
 | Sábado noche | Negocio | Lean Canvas, FODA, PESTEL, financiero, README |
 | Sábado noche / domingo madrugada | Backend + IA | Integración 1 (IA real en backend) |
 | Domingo madrugada | Frontend | Integración 2 (backend real) + smoke test E2E |
