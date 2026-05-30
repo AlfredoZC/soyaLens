@@ -1,0 +1,40 @@
+{
+  "os": "Windows-10-10.0.26200-SP0",
+  "python": "CPython 3.10.9",
+  "startedAt": "2026-05-30T13:54:44.069465Z",
+  "program": "C:\\Users\\alfre\\Documents\\Tarts\\Coding\\proyectos\\BWAI_project_soyaLens\\soyaLens\\ai\\train\\train.py",
+  "codePath": "ai\\train\\train.py",
+  "codePathLocal": "ai\\train\\train.py",
+  "git": {
+    "remote": "https://github.com/AlfredoZC/soyaLens.git",
+    "commit": "93c4e5a166dea05dfb719ec1ebc3604bd468e68a"
+  },
+  "email": "josealfredo.zambranacruz.az@gmail.com",
+  "root": "C:\\Users\\alfre\\Documents\\Tarts\\Coding\\proyectos\\BWAI_project_soyaLens\\soyaLens",
+  "host": "MSI",
+  "executable": "C:\\Users\\alfre\\Documents\\Tarts\\Coding\\proyectos\\BWAI_project_soyaLens\\envBWIA\\Scripts\\python.exe",
+  "cpu_count": 10,
+  "cpu_count_logical": 16,
+  "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "999630565376",
+      "used": "661242683392"
+    }
+  },
+  "memory": {
+    "total": "16868859904"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+      "memoryTotal": "6439305216",
+      "cudaCores": 2560,
+      "architecture": "Ada",
+      "uuid": "GPU-a99c6491-8bbf-13ee-c7a6-1466c7149ddd"
+    }
+  ],
+  "cudaVersion": "12.9",
+  "writerId": "znf9hfdaoyddwpa91s7w216595i3wmih"
+}
