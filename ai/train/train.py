@@ -27,6 +27,13 @@ import shutil
 import sys
 from pathlib import Path
 
+# Cargar variables del .env automáticamente (si existe)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass  # Si no está instalado, se usarán las vars de entorno del sistema
+
 # --- Rutas base del repo (este archivo vive en <repo>/ai/train/train.py) ---
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_YAML = REPO_ROOT / "ai" / "dataset" / "data.yaml"
@@ -81,27 +88,38 @@ def detect_device(requested: str | None) -> str:
     return "cpu"
 
 
-def maybe_init_wandb(model, run_name: str, disabled: bool) -> bool:
-    """Conecta el callback de W&B si hay API key. Degrada con gracia si no.
+def maybe_init_wandb(run_name: str, disabled: bool) -> bool:
+    """Autentica W&B y configura las variables de entorno para que
+    Ultralytics active su integración nativa (sin add_wandb_callback,
+    que rompe en ultralytics >= 8.3 por ClassificationTrainer).
 
     Retorna True si W&B quedó activo, False si se omitió.
     """
     if disabled:
         print("[W&B] Desactivado por --no-wandb.")
         return False
-    if not os.environ.get("WANDB_API_KEY"):
-        print("[W&B] WANDB_API_KEY no encontrada en el entorno; se entrena SIN logging. "
-              "(Define la key en tu .env o expórtala para registrar el run.)")
+    api_key = os.environ.get("WANDB_API_KEY")
+    if not api_key:
+        print("[W&B] WANDB_API_KEY no encontrada; se entrena SIN logging.")
         return False
     try:
         import wandb
-        from wandb.integration.ultralytics import add_wandb_callback
-
-        wandb.init(project=WANDB_PROJECT, name=run_name, job_type="training")
-        add_wandb_callback(model)
-        print(f"[W&B] Run iniciado en proyecto '{WANDB_PROJECT}'.")
+        wandb.login(key=api_key, relogin=True)
+        # Crear el run explícitamente — Ultralytics lo detecta y envía métricas ahí
+        wandb.init(
+            project=WANDB_PROJECT,
+            name=run_name,
+            job_type="training",
+            config={
+                "model": "yolo26s",
+                "dataset": "soyalens-granos",
+                "nc": 4,
+                "classes": ["broken", "immature", "intact", "damaged"],
+            },
+        )
+        print(f"[W&B] Run creado → {wandb.run.url}")
         return True
-    except Exception as exc:  # no bloquear el entrenamiento por un fallo de tracking
+    except Exception as exc:
         print(f"[W&B] No se pudo inicializar ({exc}). Se continúa sin logging.")
         return False
 
@@ -113,6 +131,7 @@ def build_train_config(args: argparse.Namespace, device: str) -> dict:
     """
     return dict(
         data=str(args.data),
+        project=str(REPO_ROOT / "ai" / "runs" / "detect"),  # outputs dentro de ai/
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
@@ -164,14 +183,14 @@ def main() -> int:
     model = YOLO(args.model)
 
     # --- Tracking opcional ---
-    wandb_active = maybe_init_wandb(model, args.name, args.no_wandb)
+    wandb_active = maybe_init_wandb(args.name, args.no_wandb)
 
     # --- Entrenamiento ---
     cfg = build_train_config(args, device)
     results = model.train(**cfg)
 
-    # `save_dir` es donde Ultralytics guardó este run (runs/detect/<name>/).
-    save_dir = Path(getattr(results, "save_dir", REPO_ROOT / "runs" / "detect" / args.name))
+    # `save_dir` es donde Ultralytics guardó este run (ai/runs/detect/<name>/).
+    save_dir = Path(getattr(results, "save_dir", REPO_ROOT / "ai" / "runs" / "detect" / args.name))
     best_ckpt = save_dir / "weights" / "best.pt"
 
     # --- Evaluación opcional contra el split de test ---
