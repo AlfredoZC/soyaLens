@@ -33,10 +33,16 @@ env/
 # -----------------------------------------------------------------------------
 # MODELOS IA Y ARCHIVOS PESADOS
 # -----------------------------------------------------------------------------
-# No subir los pesos de entrenamiento por defecto, pesan mucho
+# Pesos de modelos (pesados — no subir al repo)
+*.pt
+*.pth
+*.onnx
+# Carpeta de pesos entrenados
 ai/weights/
-# (Opcional) Si decides usar git lfs para tu modelo final, puedes descomentar la siguiente línea:
-#!ai/weights/best.pt
+# Outputs del entrenamiento (generados por Ultralytics)
+runs/
+# Cachés generados por Ultralytics
+*.cache
 
 # Ignorar fotos de prueba o datasets para no llenar el repo
 *.jpg
