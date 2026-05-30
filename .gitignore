@@ -39,7 +39,8 @@ env/
 *.onnx
 # Carpeta de pesos entrenados
 ai/weights/
-# Outputs del entrenamiento (generados por Ultralytics)
+# Outputs del entrenamiento (generados por Ultralytics, deben vivir en ai/runs/)
+ai/runs/
 runs/
 # Cachés generados por Ultralytics
 *.cache
