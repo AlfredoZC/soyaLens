@@ -1,0 +1,8 @@
+path: C:/Users/alfre/Documents/Tarts/Coding/proyectos/BWAI_project_soyaLens/soyaLens/ai/dataset
+
+train: train/images
+val: val/images
+test: test/images
+
+nc: 4
+names: ['broken', 'immature', 'intact', 'damaged']

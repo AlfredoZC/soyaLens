@@ -6,7 +6,7 @@ Este archivo mantiene un registro vivo de la arquitectura, endpoints y decisione
 ## Arquitectura Base
 - **Framework:** FastAPI
 - **Base de Datos:** Supabase PostgreSQL y Storage (`evidence`)
-- **Gestión de Paquetes:** `uv`
+- **Gestión de Paquetes:** `pip`
 - **Modelos:** Importados de `shared/schemas.py`
 
 ## Changelog

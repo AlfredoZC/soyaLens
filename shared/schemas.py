@@ -2,8 +2,10 @@ from pydantic import BaseModel, Field
 from typing import Literal, Optional
 from datetime import datetime
 
-# Las 4 clases de grano (NO agregar más sin acuerdo de equipo)
-GrainClass = Literal["sano", "partido", "hongo", "inmaduro"]
+# Las 4 clases de grano (NO agregar más sin acuerdo de equipo).
+# Traducción de las clases del dataset (ai/dataset/data.yaml):
+#   broken→partido, immature→inmaduro, intact→sano, damaged→dañado
+GrainClass = Literal["sano", "partido", "dañado", "inmaduro"]
 
 class Detection(BaseModel):
     """Representa un único grano detectado por YOLO."""
@@ -16,11 +18,11 @@ class ClassBreakdown(BaseModel):
     total: int
     count_sano: int
     count_partido: int
-    count_hongo: int
+    count_dañado: int
     count_inmaduro: int
     pct_sano: float
     pct_partido: float
-    pct_hongo: float
+    pct_dañado: float
     pct_inmaduro: float
 
 class Certificate(BaseModel):

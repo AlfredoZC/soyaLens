@@ -92,7 +92,7 @@ Este proyecto se construye en 3 partes en paralelo (IA, Backend, Frontend). El m
 
 | Capa | Herramienta | Responsable |
 |---|---|---|
-| Lenguaje/entorno | Python 3.12 + uv + Ruff | Todos |
+| Lenguaje/entorno | Python 3.12 + pip + Ruff | Todos |
 | Visión | Ultralytics **YOLO26** (`yolo26s`) | IA |
 | Tiling | **SAHI** | IA |
 | Soporte visión | OpenCV, PyTorch | IA |
@@ -263,7 +263,7 @@ def generate_certificate(breakdown: ClassBreakdown,
 **De qué dependes:** las 3 funciones de IA (6.1). Mientras la IA no esté lista, **úsalas mockeadas** (un stub que devuelve un `Certificate` falso que cumpla el schema). Así no te bloqueas.
 
 **Checklist:**
-- [ ] Crear el proyecto FastAPI (`backend/main.py`) con uv.
+- [ ] Crear el proyecto FastAPI (`backend/main.py`).
 - [ ] Importar los schemas de `shared/schemas.py` (no redefinas modelos).
 - [ ] Crear la tabla `samples` y el bucket `evidence` en Supabase (SQL de 5.2).
 - [ ] Implementar `POST /api/v1/analyze`:
