@@ -11,8 +11,9 @@ Proyecto desarrollado para Build With AI 2026, mencion Industria.
 **Integrantes registrados en el historial del repositorio:**
 - AlfredoZC
 - Pablo Alejandro Osorio Portanda
-- xam-me
-
+- Isaac Ezequiel Llanos Terrazas
+- Analin Choque Cruz
+- Atsushi Adrián Bravo Iriarte
 > Checklist de entrega: verificar en GitHub que todos los integrantes esten agregados como colaboradores del repositorio publico.
 
 ## Problema
