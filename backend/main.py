@@ -28,7 +28,15 @@ from fastapi.responses import JSONResponse
 
 import backend.db as db
 from ai.pipeline import detect_grains, summarize, generate_certificate
-from shared.schemas import Certificate
+from shared.schemas import Certificate, Detection
+from pydantic import BaseModel
+from typing import List
+
+
+class AnalyzeResponse(BaseModel):
+    """Respuesta extendida del endpoint /analyze: incluye certificado + detecciones para el frontend."""
+    certificate: Certificate
+    detections: List[Detection]  # Lista de bounding boxes para renderizar en el canvas
 
 # --------------------------------------------------------------------------- #
 #  App & CORS
@@ -75,7 +83,7 @@ def health():
 #  POST /api/v1/analyze
 # --------------------------------------------------------------------------- #
 
-@app.post("/api/v1/analyze", response_model=Certificate, tags=["análisis"])
+@app.post("/api/v1/analyze", response_model=AnalyzeResponse, tags=["análisis"])
 async def analyze(
     image: UploadFile = File(..., description="Imagen de la bandeja de soya"),
     lot_id: str = Form(None, description="Identificador del lote (opcional)"),
@@ -152,8 +160,8 @@ async def analyze(
             detail=f"Error al guardar en la base de datos: {exc}",
         )
 
-    # --- 6. Devolver certificado ---
-    return cert
+    # --- 6. Devolver certificado + detecciones al frontend ---
+    return AnalyzeResponse(certificate=cert, detections=detections)
 
 
 # --------------------------------------------------------------------------- #

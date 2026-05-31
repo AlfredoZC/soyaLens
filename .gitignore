@@ -72,14 +72,13 @@ envBwaiBackend/
 
 # Carpeta de pesos entrenados
 ai/weights/
-<<<<<<< HEAD
 
-# Outputs del entrenamiento (generados por Ultralytics)
-=======
 # Outputs del entrenamiento (generados por Ultralytics, deben vivir en ai/runs/)
 ai/runs/
->>>>>>> d41d7d74309abc0eb2060dfc54ada63d2e6267a1
 runs/
+
+# Runs locales de Weights & Biases
+wandb/
 
 # Cachés de modelos
 *.cache

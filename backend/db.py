@@ -71,7 +71,7 @@ def insert_sample(cert: Certificate) -> str:
         "pct_sano": cert.breakdown.pct_sano,
         "pct_partido": cert.breakdown.pct_partido,
         "pct_inmaduro": cert.breakdown.pct_inmaduro,
-        "pct_danado": cert.breakdown.pct_dañado,
+        "pct_dañado": cert.breakdown.pct_dañado,  # columna con ñ en Supabase
         "verdict": cert.verdict,
         "discount_pct": cert.discount_pct,
         "norm": cert.norm,
@@ -89,13 +89,13 @@ def get_samples(limit: int = 50) -> dict:
     response = (
         client.table("samples")
         .select(
-            "id, created_at, lot_id, supplier, verdict, pct_danado, discount_pct, evidence_url"
+            "id, created_at, lot_id, supplier, verdict, pct_dañado, discount_pct, evidence_url"
         )
         .order("created_at", desc=True)
         .limit(limit)
         .execute()
     )
-    return {"items": response.data, "total": len(response.data)}
+    return {"items": response.data or [], "total": len(response.data or [])}
 
 
 def get_sample_by_id(sample_id: str) -> Optional[dict]:
@@ -110,7 +110,9 @@ def get_sample_by_id(sample_id: str) -> Optional[dict]:
         .limit(1)
         .execute()
     )
-    return response.data[0] if response.data else None
+    if not response.data:
+        return None
+    return response.data[0]
 
 
 def get_stats_today() -> dict:
@@ -124,7 +126,7 @@ def get_stats_today() -> dict:
 
     response = (
         client.table("samples")
-        .select("verdict, pct_danado")
+        .select("verdict, pct_dañado")
         .gte("created_at", today_start)
         .execute()
     )
@@ -135,7 +137,7 @@ def get_stats_today() -> dict:
     with_discount = sum(1 for r in rows if r.get("verdict") == "con_descuento")
     rejected = sum(1 for r in rows if r.get("verdict") == "rechazado")
     avg_pct_danado = (
-        sum(float(r.get("pct_danado") or 0) for r in rows) / total if total > 0 else 0.0
+        sum(float(r.get("pct_dañado") or 0) for r in rows) / total if total > 0 else 0.0
     )
 
     return {

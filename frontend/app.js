@@ -27,7 +27,7 @@ const certTimestamp = document.getElementById('cert-timestamp');
 const certVerdictBadge = document.getElementById('cert-verdict-badge');
 const certDiscountTicker = document.getElementById('cert-discount-ticker');
 const certDiscountVal = document.getElementById('cert-discount-val');
-const certImage = document.getElementById('cert-image');
+const certCanvas = document.getElementById('cert-canvas');  // Canvas para imagen + bboxes
 const certLotId = document.getElementById('cert-lot-id');
 const certSupplier = document.getElementById('cert-supplier');
 const certTotalGrains = document.getElementById('cert-total-grains');
@@ -35,7 +35,7 @@ const certNorm = document.getElementById('cert-norm');
 const certJustification = document.getElementById('cert-justification');
 const pctSanoLbl = document.getElementById('pct-sano-lbl');
 const pctPartidoLbl = document.getElementById('pct-partido-lbl');
-const pctHongoLbl = document.getElementById('pct-hongo-lbl');
+const pctDanadoLbl = document.getElementById('pct-danado-lbl');
 const pctInmaduroLbl = document.getElementById('pct-inmaduro-lbl');
 const btnPrintCert = document.getElementById('btn-print-cert');
 const btnNewAnalysis = document.getElementById('btn-new-analysis');
@@ -230,16 +230,29 @@ analyzeForm.addEventListener('submit', async (e) => {
     inputSupplier.disabled = true;
 
     try {
-        const certificate = await SoyaLensAPI.analyzeSample(selectedFile, lotId, supplier);
+        const response = await SoyaLensAPI.analyzeSample(selectedFile, lotId, supplier);
+        
+        // La API real devuelve { certificate, detections }; el mock devuelve el certificado directamente
+        const certificate = response.certificate || response;
+        const detections = response.detections || [];
         currentCertificate = certificate;
+
+        // Capturar la imagen subida por el usuario ANTES de limpiar el formulario
+        // (resetUploadZone borra imagePreview.src)
+        const localImageSrc = imagePreview.src || '';
 
         // Limpiar formulario para el próximo análisis
         inputLotId.value = '';
         inputSupplier.value = '';
         resetUploadZone();
 
-        // Cargar certificado en la vista
-        renderCertificate(certificate);
+        // Si el certificado no tiene URL de evidencia (mock o error), usar la imagen local
+        if (!certificate.evidence_image_url && localImageSrc) {
+            certificate.evidence_image_url = localImageSrc;
+        }
+
+        // Cargar certificado en la vista (con bounding boxes si hay detecciones)
+        renderCertificate(certificate, detections);
 
         // Habilitar y redirigir a la pestaña de Certificado
         navBtnCertificate.disabled = false;
@@ -258,8 +271,76 @@ analyzeForm.addEventListener('submit', async (e) => {
     }
 });
 
+// Paleta de colores por clase de grano (debe coincidir con el donut chart y la leyenda)
+const BBOX_COLORS = {
+    sano:     '#10b981',
+    partido:  '#f59e0b',
+    dañado:   '#ef4444',
+    inmaduro: '#a855f7',
+};
+
+/**
+ * Dibuja la imagen de evidencia en el canvas y superpone los bounding boxes
+ * de cada detección con un color distinto según la clase de grano.
+ * @param {string} imageUrl - URL pública de la imagen en Supabase Storage
+ * @param {Array} detections - Lista de {class_name, confidence, bbox: [x1,y1,x2,y2]}
+ */
+function drawDetections(imageUrl, detections) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+        certCanvas.width  = img.naturalWidth;
+        certCanvas.height = img.naturalHeight;
+        const ctx = certCanvas.getContext('2d');
+
+        // 1. Dibujar la imagen base
+        ctx.drawImage(img, 0, 0);
+
+        // 2. Dibujar cada bounding box
+        detections.forEach(det => {
+            const [x1, y1, x2, y2] = det.bbox;
+            const w = x2 - x1;
+            const h = y2 - y1;
+            const color = BBOX_COLORS[det.class_name] || '#ffffff';
+
+            // Rect exterior
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(2, img.naturalWidth / 600); // Escala relativa
+            ctx.strokeRect(x1, y1, w, h);
+
+            // Etiqueta de clase sobre el rect
+            const fontSize = Math.max(10, img.naturalWidth / 120);
+            ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+            const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
+            const textW = ctx.measureText(label).width;
+
+            // Fondo de la etiqueta
+            ctx.fillStyle = color;
+            ctx.fillRect(x1, y1 - fontSize - 4, textW + 8, fontSize + 6);
+
+            // Texto de la etiqueta
+            ctx.fillStyle = '#000000';
+            ctx.fillText(label, x1 + 4, y1 - 4);
+        });
+    };
+    img.onerror = () => {
+        // Si la imagen no carga (ej. modo mock sin URL real), limpiar el canvas
+        const ctx = certCanvas.getContext('2d');
+        certCanvas.width  = 400;
+        certCanvas.height = 300;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.fillStyle = '#475569';
+        ctx.font = '16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Imagen no disponible', 200, 150);
+    };
+    img.src = imageUrl || '';
+    if (!imageUrl) img.onerror();
+}
+
 // 6. RENDERIZACIÓN DEL CERTIFICADO Y DONUT CHART
-function renderCertificate(cert) {
+function renderCertificate(cert, detections = []) {
     certSampleId.textContent = cert.sample_id;
     
     // Formatear Fecha
@@ -269,8 +350,8 @@ function renderCertificate(cert) {
         hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
 
-    // Cargar imagen de evidencia
-    certImage.src = cert.evidence_image_url;
+    // Dibujar imagen + bounding boxes en el canvas
+    drawDetections(cert.evidence_image_url, detections);
 
     // Metadatos
     certLotId.textContent = cert.lot_id || 'SIN IDENTIFICAR';
@@ -301,11 +382,14 @@ function renderCertificate(cert) {
         certDiscountVal.style.color = 'var(--color-rechazado)';
     }
 
-    // Porcentajes en Leyenda
-    pctSanoLbl.textContent = `${cert.breakdown.pct_sano.toFixed(1)}% (${cert.breakdown.count_sano} uds)`;
-    pctPartidoLbl.textContent = `${cert.breakdown.pct_partido.toFixed(1)}% (${cert.breakdown.count_partido} uds)`;
-    pctHongoLbl.textContent = `${cert.breakdown.pct_hongo.toFixed(1)}% (${cert.breakdown.count_hongo} uds)`;
-    pctInmaduroLbl.textContent = `${cert.breakdown.pct_inmaduro.toFixed(1)}% (${cert.breakdown.count_inmaduro} uds)`;
+    // Porcentajes en Leyenda — usamos el contrato: pct_dañado/count_dañado (con ñ)
+    const b = cert.breakdown;
+    const pctDanado = b.pct_dañado ?? b.pct_danado ?? 0;
+    const countDanado = b.count_dañado ?? b.count_danado ?? 0;
+    pctSanoLbl.textContent = `${b.pct_sano.toFixed(1)}% (${b.count_sano} uds)`;
+    pctPartidoLbl.textContent = `${b.pct_partido.toFixed(1)}% (${b.count_partido} uds)`;
+    pctDanadoLbl.textContent = `${pctDanado.toFixed(1)}% (${countDanado} uds)`;
+    pctInmaduroLbl.textContent = `${b.pct_inmaduro.toFixed(1)}% (${b.count_inmaduro} uds)`;
 
     // Justificación LLM
     certJustification.textContent = cert.justification;
@@ -321,21 +405,22 @@ function updateDonutChart(breakdown) {
         donutChartInstance.destroy();
     }
 
+    const pctDanado = breakdown.pct_dañado ?? breakdown.pct_danado ?? 0;
     donutChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Sano', 'Partido', 'Daño Hongo', 'Inmaduro'],
+            labels: ['Sano', 'Partido', 'Dañado', 'Inmaduro'],
             datasets: [{
                 data: [
                     breakdown.pct_sano,
                     breakdown.pct_partido,
-                    breakdown.pct_hongo,
+                    pctDanado,
                     breakdown.pct_inmaduro
                 ],
                 backgroundColor: [
                     '#10b981', // Sano
                     '#f59e0b', // Partido
-                    '#ef4444', // Hongo
+                    '#ef4444', // Dañado
                     '#a855f7'  // Inmaduro
                 ],
                 borderColor: '#121622',
@@ -428,14 +513,17 @@ function renderHistoryTable(samples) {
             veredictoTexto = 'Rechazado';
         }
 
-        const hongoPct = sample.breakdown ? sample.breakdown.pct_hongo : sample.pct_hongo;
+        // Soporta tanto la respuesta del backend real (con ñ) como del mock (legacy)
+        const danadoPct = (sample.breakdown
+            ? (sample.breakdown.pct_dañado ?? sample.breakdown.pct_danado ?? sample.breakdown.pct_hongo)
+            : (sample.pct_dañado ?? sample.pct_danado ?? sample.pct_hongo)) ?? 0;
         const discountVal = sample.verdict === 'rechazado' ? 'RECHAZADO' : `${sample.discount_pct.toFixed(2)}%`;
 
         tr.innerHTML = `
             <td>${fechaFormateada}</td>
             <td><strong>${sample.lot_id || 'N/A'}</strong></td>
             <td>${sample.supplier || 'N/A'}</td>
-            <td>${hongoPct.toFixed(1)}%</td>
+            <td>${danadoPct.toFixed(1)}%</td>
             <td style="font-weight: 600;">${discountVal}</td>
             <td><span class="badge ${badgeClass}">${veredictoTexto}</span></td>
             <td class="action-cell">

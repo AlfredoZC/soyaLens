@@ -52,10 +52,43 @@ _FAKE_CERT = {
 }
 
 
+def _fake_detect_grains(image_path):
+    """Devuelve detecciones simuladas (evita cargar YOLO/SAHI en los tests)."""
+    from shared.schemas import Detection
+    return [
+        Detection(class_name="sano", confidence=0.95, bbox=[0, 0, 10, 10])
+        for _ in range(280)
+    ] + [
+        Detection(class_name="partido", confidence=0.90, bbox=[0, 0, 10, 10])
+        for _ in range(10)
+    ] + [
+        Detection(class_name="dañado", confidence=0.85, bbox=[0, 0, 10, 10])
+        for _ in range(5)
+    ] + [
+        Detection(class_name="inmaduro", confidence=0.85, bbox=[0, 0, 10, 10])
+        for _ in range(5)
+    ]
+
+
+def _fake_generate_certificate(breakdown, lot_id, supplier, evidence_image_url=""):
+    """Devuelve un certificado simulado (evita llamadas reales a Gemini/Ollama)."""
+    from shared.schemas import Certificate
+
+    data = {
+        **_FAKE_CERT,
+        "lot_id": lot_id,
+        "supplier": supplier,
+        "breakdown": breakdown.model_dump(),
+        "evidence_image_url": evidence_image_url,
+    }
+    return Certificate.model_validate(data)
+
+
 @pytest.fixture(scope="module")
 def client():
-    """TestClient con Supabase mockeado."""
+    """TestClient con Supabase y pipeline IA mockeados."""
     with (
+        # Mock de Supabase (no necesita credenciales)
         mock.patch("backend.db.upload_evidence", return_value="https://example.com/evidence/test.jpg"),
         mock.patch("backend.db.insert_sample", return_value="test-001"),
         mock.patch("backend.db.get_samples", return_value={"items": [_FAKE_CERT], "total": 1}),
@@ -64,6 +97,9 @@ def client():
             "total_samples": 1, "approved": 1, "with_discount": 0,
             "rejected": 0, "avg_pct_danado": 1.67,
         }),
+        # Mock del pipeline IA (no carga modelo ni llama a Gemini)
+        mock.patch("backend.main.detect_grains", side_effect=_fake_detect_grains),
+        mock.patch("backend.main.generate_certificate", side_effect=_fake_generate_certificate),
     ):
         from backend.main import app
         yield TestClient(app)
@@ -96,6 +132,9 @@ def test_analyze_returns_certificate(client):
     )
     assert response.status_code == 200, response.text
     data = response.json()
+    assert "certificate" in data
+    assert "detections" in data
+    cert = data["certificate"]
 
     # Verifica campos requeridos del schema Certificate
     required_fields = [
@@ -103,10 +142,10 @@ def test_analyze_returns_certificate(client):
         "discount_pct", "norm", "justification", "evidence_image_url",
     ]
     for field in required_fields:
-        assert field in data, f"Campo faltante: {field}"
+        assert field in cert, f"Campo faltante: {field}"
 
     # Verifica que breakdown tiene los porcentajes
-    breakdown = data["breakdown"]
+    breakdown = cert["breakdown"]
     assert "total" in breakdown
     assert "pct_sano" in breakdown
     assert "pct_dañado" in breakdown

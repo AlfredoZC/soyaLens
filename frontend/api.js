@@ -18,11 +18,11 @@ const SEED_SAMPLES = [
             total: 350,
             count_sano: 329,
             count_partido: 12,
-            count_hongo: 3,
+            count_dañado: 3,
             count_inmaduro: 6,
             pct_sano: 94.0,
             pct_partido: 3.4,
-            pct_hongo: 0.9,
+            pct_dañado: 0.9,
             pct_inmaduro: 1.7
         },
         verdict: "aprobado",
@@ -40,11 +40,11 @@ const SEED_SAMPLES = [
             total: 280,
             count_sano: 248,
             count_partido: 21,
-            count_hongo: 8,
+            count_dañado: 8,
             count_inmaduro: 3,
             pct_sano: 88.6,
             pct_partido: 7.5,
-            pct_hongo: 2.8,
+            pct_dañado: 2.8,
             pct_inmaduro: 1.1
         },
         verdict: "con_descuento",
@@ -62,11 +62,11 @@ const SEED_SAMPLES = [
             total: 310,
             count_sano: 260,
             count_partido: 15,
-            count_hongo: 17,
+            count_dañado: 17,
             count_inmaduro: 18,
             pct_sano: 83.9,
             pct_partido: 4.8,
-            pct_hongo: 5.5,
+            pct_dañado: 5.5,
             pct_inmaduro: 5.8
         },
         verdict: "rechazado",
@@ -84,11 +84,11 @@ const SEED_SAMPLES = [
             total: 410,
             count_sano: 390,
             count_partido: 12,
-            count_hongo: 2,
+            count_dañado: 2,
             count_inmaduro: 6,
             pct_sano: 95.1,
             pct_partido: 2.9,
-            pct_hongo: 0.5,
+            pct_dañado: 0.5,
             pct_inmaduro: 1.5
         },
         verdict: "aprobado",
@@ -189,68 +189,62 @@ export const SoyaLensAPI = {
             // Simular retraso de procesamiento de IA de 2.2 segundos para la animación
             await new Promise(resolve => setTimeout(resolve, 2200));
 
-            // Leer la imagen del usuario para que la evidencia sea su propia foto
-            let evidenceUrl = "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80";
-            if (imageFile) {
-                try {
-                    evidenceUrl = await fileToDataURL(imageFile);
-                } catch (e) {
-                    console.error("No se pudo procesar la imagen a DataURL, usando predeterminada", e);
-                }
-            }
+            // En modo mock usamos una URL placeholder — NO guardamos el base64
+            // porque puede superar los 5MB del límite de localStorage del navegador.
+            const evidenceUrl = "";
 
             // Generar porcentajes y conteos simulados
             const total = Math.floor(250 + Math.random() * 150);
             
             // Decidir un tipo de calidad de soya aleatoria para la demo
             const randType = Math.random();
-            let pct_hongo, pct_partido, pct_inmaduro;
+            let pct_dañado, pct_partido, pct_inmaduro;
 
             if (randType < 0.5) {
                 // Soya Aprobada (Sana)
-                pct_hongo = +(Math.random() * 1.3).toFixed(1);
+                pct_dañado = +(Math.random() * 1.3).toFixed(1);
                 pct_partido = +(Math.random() * 4).toFixed(1);
                 pct_inmaduro = +(Math.random() * 2).toFixed(1);
             } else if (randType < 0.8) {
                 // Soya con Descuento (Hongos moderados o daño moderado)
-                pct_hongo = +(1.5 + Math.random() * 2.3).toFixed(1);
+                pct_dañado = +(1.5 + Math.random() * 2.3).toFixed(1);
                 pct_partido = +(3.0 + Math.random() * 6).toFixed(1);
                 pct_inmaduro = +(1.0 + Math.random() * 3).toFixed(1);
             } else {
                 // Soya Rechazada (Hongos muy altos > 4.0%)
-                pct_hongo = +(4.1 + Math.random() * 3).toFixed(1);
+                pct_dañado = +(4.1 + Math.random() * 3).toFixed(1);
                 pct_partido = +(5.0 + Math.random() * 10).toFixed(1);
                 pct_inmaduro = +(3.0 + Math.random() * 5).toFixed(1);
             }
 
-            const pct_sano = +(100 - (pct_hongo + pct_partido + pct_inmaduro)).toFixed(1);
+            const pct_sano = +(100 - (pct_dañado + pct_partido + pct_inmaduro)).toFixed(1);
 
-            const count_hongo = Math.round(total * (pct_hongo / 100));
+            const count_dañado = Math.round(total * (pct_dañado / 100));
             const count_partido = Math.round(total * (pct_partido / 100));
             const count_inmaduro = Math.round(total * (pct_inmaduro / 100));
-            const count_sano = total - (count_hongo + count_partido + count_inmaduro);
+            const count_sano = total - (count_dañado + count_partido + count_inmaduro);
 
             // Determinar veredicto y descuento según norma IBNORCA NB 339
             let verdict = "aprobado";
             let discount_pct = 0.0;
             let justification = "";
 
-            if (pct_hongo > 4.0) {
+            if (pct_dañado > 4.0) {
                 verdict = "rechazado";
                 discount_pct = 100.0; // Rechazado por completo
-                justification = `Lote RECHAZADO por control de calidad. El nivel de grano dañado por hongo (${pct_hongo}%) excede el límite máximo de tolerancia de la norma IBNORCA NB 339 (4.0%). Representa un alto riesgo de fermentación y contaminación por aflatoxinas en silos de almacenamiento masivo.`;
-            } else if (pct_hongo > 1.5 || pct_partido > 5.0) {
+                justification = `Lote RECHAZADO por control de calidad. El nivel de grano dañado por hongo (${pct_dañado}%) excede el límite máximo de tolerancia de la norma IBNORCA NB 339 (4.0%). Representa un alto riesgo de fermentación y contaminación por aflatoxinas en silos de almacenamiento masivo.`;
+            } else if (pct_dañado > 1.5 || pct_partido > 5.0) {
                 verdict = "con_descuento";
                 // Cálculo de penalización: 1.8% por cada 1% de hongo + 0.3% por cada 1% de partido
-                const hongoPen = Math.max(0, (pct_hongo - 1.5) * 1.8);
+                const hongoPen = Math.max(0, (pct_dañado - 1.5) * 1.8);
                 const partidoPen = Math.max(0, (pct_partido - 5.0) * 0.4);
                 discount_pct = +(hongoPen + partidoPen + (pct_inmaduro > 2.0 ? 0.8 : 0)).toFixed(2);
                 if (discount_pct === 0) discount_pct = 1.5; // Descuento base si cae en esta categoría
-                justification = `Muestra aprobada con observaciones de calidad. Se identificó un nivel de grano dañado por hongo del ${pct_hongo}% (límite base de tolerancia: 1.5%) y grano partido del ${pct_partido}%. Se aplica un descuento regulatorio del ${discount_pct}% sobre la liquidación económica del lote.`;
+                justification = `Muestra aprobada con observaciones de calidad. Se identificó un nivel de grano dañado por hongo del ${pct_dañado}% (límite base de tolerancia: 1.5%) y grano partido del ${pct_partido}%. Se aplica un descuento regulatorio del ${discount_pct}% sobre la liquidación económica del lote.`;
             } else {
                 verdict = "aprobado";
                 discount_pct = 0.0;
-                justification = `Lote APROBADO para almacenamiento y procesamiento. La muestra analizada cumple con las tolerancias de la norma IBNORCA NB 339. Presencia de grano dañado por hongo (${pct_hongo}%) y grano partido (${pct_partido}%) en niveles óptimos.`;
+                justification = `Lote APROBADO para almacenamiento y procesamiento. La muestra analizada cumple con las tolerancias de la norma IBNORCA NB 339. Presencia de grano dañado por hongo (${pct_dañado}%) y grano partido (${pct_partido}%) en niveles óptimos.`;
             }
 
             const newCertificate = {
@@ -262,11 +256,11 @@ export const SoyaLensAPI = {
                     total,
                     count_sano,
                     count_partido,
-                    count_hongo,
+                    count_dañado,
                     count_inmaduro,
                     pct_sano,
                     pct_partido,
-                    pct_hongo,
+                    pct_dañado,
                     pct_inmaduro
                 },
                 verdict,
@@ -276,10 +270,18 @@ export const SoyaLensAPI = {
                 evidence_image_url: evidenceUrl
             };
 
-            // Guardar en el historial local
-            const history = JSON.parse(localStorage.getItem('soyalens_history'));
-            history.push(newCertificate);
-            localStorage.setItem('soyalens_history', JSON.stringify(history));
+            // Guardar en el historial local (sin la evidence_image_url para ahorrar espacio)
+            try {
+                const history = JSON.parse(localStorage.getItem('soyalens_history') || '[]');
+                const slim = { ...newCertificate, evidence_image_url: '' }; // omitir base64
+                history.push(slim);
+                // Mantener solo los últimos 30 registros para no llenar localStorage
+                const trimmed = history.slice(-30);
+                localStorage.setItem('soyalens_history', JSON.stringify(trimmed));
+            } catch (e) {
+                console.warn('localStorage lleno, limpiando historial antiguo...', e);
+                localStorage.setItem('soyalens_history', JSON.stringify([newCertificate]));
+            }
 
             return newCertificate;
 
@@ -300,22 +302,22 @@ export const SoyaLensAPI = {
                 throw new Error(errData.error || `Error en el análisis (${response.status})`);
             }
 
-            const certificate = await response.json();
-            
-            // También respaldamos la respuesta del backend real en la base de datos local 
-            // para que no se pierda al alternar modos.
+            const response_json = await response.json();
+
+            // Respaldar en localStorage SOLO el certificado (sin detections — puede ser enorme)
             try {
-                const history = JSON.parse(localStorage.getItem('soyalens_history'));
-                // Comprobamos si ya existe
-                if (!history.find(h => h.sample_id === certificate.sample_id)) {
-                    history.push(certificate);
-                    localStorage.setItem('soyalens_history', JSON.stringify(history));
+                const certOnly = response_json.certificate || response_json;
+                const history = JSON.parse(localStorage.getItem('soyalens_history') || '[]');
+                if (!history.find(h => h.sample_id === certOnly.sample_id)) {
+                    history.push({ ...certOnly, evidence_image_url: '' }); // omitir URL grande
+                    localStorage.setItem('soyalens_history', JSON.stringify(history.slice(-30)));
                 }
             } catch (e) {
-                console.error("Error al sincronizar historial local con backend real:", e);
+                console.warn('Error al sincronizar historial local:', e);
             }
 
-            return certificate;
+            return response_json;
+
         }
     },
 
@@ -335,8 +337,8 @@ export const SoyaLensAPI = {
             const rejected = todaySamples.filter(s => s.verdict === 'rechazado').length;
             
             // Promedio de hongos en el día
-            const avg_pct_hongo = total > 0 
-                ? +(todaySamples.reduce((acc, s) => acc + s.breakdown.pct_hongo, 0) / total).toFixed(2)
+            const avg_pct_dañado = total > 0 
+                ? +(todaySamples.reduce((acc, s) => acc + s.breakdown.pct_dañado, 0) / total).toFixed(2)
                 : 0.0;
 
             return {
@@ -344,7 +346,7 @@ export const SoyaLensAPI = {
                 approved,
                 with_discount,
                 rejected,
-                avg_pct_hongo
+                avg_pct_dañado
             };
         } else {
             try {

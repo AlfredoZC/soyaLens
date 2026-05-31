@@ -146,10 +146,18 @@
                         <!-- Evidencia Óptica -->
                         <div class="cert-image-pane">
                             <h3 class="form-title" style="font-size: 16px; margin-bottom: 8px;">Evidencia Fotográfica de Auditoría</h3>
-                            <div class="cert-image-wrapper">
-                                <img src="" alt="Evidencia de análisis" id="cert-image">
+                            <div class="cert-image-wrapper" style="position: relative;">
+                                <!-- Canvas para imagen + bounding boxes de detección -->
+                                <canvas id="cert-canvas" style="width:100%; height:auto; display:block; border-radius: 8px;"></canvas>
                             </div>
-                            <p style="font-size: 11px; color: var(--text-muted); text-align: center;">Imagen almacenada de forma permanente y auditable</p>
+                            <!-- Leyenda de colores de los cuadros de detección -->
+                            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--text-muted);">
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:4px;"></span>Sano</span>
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;border-radius:2px;margin-right:4px;"></span>Partido</span>
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;margin-right:4px;"></span>Dañado</span>
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#a855f7;border-radius:2px;margin-right:4px;"></span>Inmaduro</span>
+                            </div>
+                            <p style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top:4px;">Imagen almacenada de forma permanente y auditable</p>
                         </div>
 
                         <!-- Datos del Reporte Técnico -->
@@ -189,8 +197,8 @@
                                         <span class="legend-pct" id="pct-partido-lbl">0.0%</span>
                                     </div>
                                     <div class="legend-item hongo">
-                                        <span><span class="legend-color"></span>Daño Hongo</span>
-                                        <span class="legend-pct" id="pct-hongo-lbl">0.0%</span>
+                                        <span><span class="legend-color"></span>Dañado</span>
+                                        <span class="legend-pct" id="pct-danado-lbl">0.0%</span>
                                     </div>
                                     <div class="legend-item inmaduro">
                                         <span><span class="legend-color"></span>Inmaduro</span>
@@ -272,7 +280,7 @@
                                     <th>Fecha / Hora</th>
                                     <th>Lote</th>
                                     <th>Proveedor</th>
-                                    <th>% Daño Hongo</th>
+                                    <th>% Dañado</th>
                                     <th>Descuento %</th>
                                     <th>Veredicto</th>
                                     <th>Acción</th>
