@@ -145,3 +145,26 @@ docker-compose.override.yml
 tmp/
 temp/
 *.tmp
+
+# -----------------------------------------------------------------------------
+# ARTEFACTOS VISUALES PUBLICABLES PARA README
+# -----------------------------------------------------------------------------
+# Mantener ignorado el resto de ai/runs/, pero permitir imagenes puntuales
+# del entrenamiento YOLO necesarias para documentar el MVP.
+!ai/runs/
+ai/runs/*
+!ai/runs/detect/
+ai/runs/detect/*
+!ai/runs/detect/yolo26s_soya-4/
+ai/runs/detect/yolo26s_soya-4/*
+!ai/runs/detect/yolo26s_soya-4/results.png
+!ai/runs/detect/yolo26s_soya-4/BoxF1_curve.png
+!ai/runs/detect/yolo26s_soya-4/BoxP_curve.png
+!ai/runs/detect/yolo26s_soya-4/BoxPR_curve.png
+!ai/runs/detect/yolo26s_soya-4/BoxR_curve.png
+!ai/runs/detect/yolo26s_soya-4/confusion_matrix.png
+!ai/runs/detect/yolo26s_soya-4/confusion_matrix_normalized.png
+!ai/runs/detect/yolo26s_soya-4/labels.jpg
+!ai/runs/detect/yolo26s_soya-4/val_batch0_pred.jpg
+!ai/runs/detect/yolo26s_soya-4/val_batch1_pred.jpg
+!ai/runs/detect/yolo26s_soya-4/val_batch2_pred.jpg

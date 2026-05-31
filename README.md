@@ -85,13 +85,23 @@ El repositorio incluye imagenes y artefactos reales del entrenamiento/dataset:
 
 ![Curva de resultados YOLO](ai/runs/detect/yolo26s_soya-4/results.png)
 
+**Curvas de aprendizaje y desempeño**
+
+![Curva F1 YOLO](ai/runs/detect/yolo26s_soya-4/BoxF1_curve.png)
+![Curva Precision YOLO](ai/runs/detect/yolo26s_soya-4/BoxP_curve.png)
+![Curva Precision-Recall YOLO](ai/runs/detect/yolo26s_soya-4/BoxPR_curve.png)
+![Curva Recall YOLO](ai/runs/detect/yolo26s_soya-4/BoxR_curve.png)
+
 **Matriz de confusion**
 
 ![Matriz de confusion](ai/runs/detect/yolo26s_soya-4/confusion_matrix.png)
+![Matriz de confusion normalizada](ai/runs/detect/yolo26s_soya-4/confusion_matrix_normalized.png)
 
 **Predicciones de validacion**
 
-![Predicciones de validacion](ai/runs/detect/yolo26s_soya-4/val_batch0_pred.jpg)
+![Predicciones de validacion 1](ai/runs/detect/yolo26s_soya-4/val_batch0_pred.jpg)
+![Predicciones de validacion 2](ai/runs/detect/yolo26s_soya-4/val_batch1_pred.jpg)
+![Predicciones de validacion 3](ai/runs/detect/yolo26s_soya-4/val_batch2_pred.jpg)
 
 **Distribucion de etiquetas**
 
